@@ -212,6 +212,8 @@ const state = {
   scannerCrop: 'Tomatoes',
   scannerImage: null,
   scannerImageName: '',
+  liveCameraActive: false,
+  cameraFacingMode: 'environment',
   scannerRunning: false,
   scannerDone: false,
   scannerResult: null,
@@ -985,35 +987,72 @@ function modal() {
         <!-- Hidden Native File Input -->
         <input type="file" id="scanner-file-input" accept="image/*" style="display:none;" />
 
-        <div class="scanner-viewport">
-          <div class="scanner-crop-display ${state.scannerImage ? 'has-image' : ''}">
-            ${state.scannerImage ? `
-              <img src="${state.scannerImage}" alt="Produce inspection target" class="scanner-preview-img" />
-            ` : `
-              <span class="big-scanner-emoji">${state.scannerCrop === 'Cauliflower' ? '🥦' : (state.scannerCrop === 'Okra' ? '🥬' : (state.scannerCrop === 'Potatoes' ? '🥔' : '🍅'))}</span>
-            `}
-            <div class="scan-laser ${state.scannerRunning ? 'active' : ''}"></div>
-            <div class="scanner-hud">
-              <span class="hud-tag">ROI: ${state.scannerCrop.toUpperCase()}</span>
-              <span class="hud-tag right">${state.scannerRunning ? 'GEMINI SCANNING' : (state.scannerDone ? 'GRADED' : 'READY')}</span>
+        <div class="scanner-viewport ${state.liveCameraActive ? 'is-live-camera' : ''}">
+          ${state.liveCameraActive ? `
+            <div class="live-camera-wrapper">
+              <video id="live-camera-video" autoplay playsinline muted class="live-camera-feed"></video>
+              <div class="camera-reticle">
+                <span class="reticle-corner top-left"></span>
+                <span class="reticle-corner top-right"></span>
+                <span class="reticle-corner bottom-left"></span>
+                <span class="reticle-corner bottom-right"></span>
+                <div class="scan-laser active"></div>
+              </div>
+              <div class="scanner-hud">
+                <span class="hud-tag live-badge">● LIVE CAMERA</span>
+                <button type="button" class="hud-flip-btn" data-action="flip-camera" title="Flip camera">🔄 Flip</button>
+              </div>
             </div>
-            ${state.scannerImageName ? `<span class="hud-filename">${state.scannerImageName}</span>` : ''}
-          </div>
+          ` : `
+            <div class="scanner-crop-display ${state.scannerImage ? 'has-image' : ''}">
+              ${state.scannerImage ? `
+                <img src="${state.scannerImage}" alt="Produce inspection target" class="scanner-preview-img" />
+              ` : `
+                <span class="big-scanner-emoji">${state.scannerCrop === 'Cauliflower' ? '🥦' : (state.scannerCrop === 'Okra' ? '🥬' : (state.scannerCrop === 'Potatoes' ? '🥔' : '🍅'))}</span>
+              `}
+              <div class="scan-laser ${state.scannerRunning ? 'active' : ''}"></div>
+              <div class="scanner-hud">
+                <span class="hud-tag">ROI: ${state.scannerCrop.toUpperCase()}</span>
+                <span class="hud-tag right">${state.scannerRunning ? 'GEMINI SCANNING' : (state.scannerDone ? 'GRADED' : 'READY')}</span>
+              </div>
+              ${state.scannerImageName ? `<span class="hud-filename">${state.scannerImageName}</span>` : ''}
+            </div>
+          `}
         </div>
 
-        <!-- Photo Upload Controls & Quick Sample Selector -->
-        <div class="photo-controls-row">
-          <button type="button" class="upload-pic-btn" data-action="choose-produce-photo">
-            ${icon('camera', 16)} <span>${state.scannerImage ? '📷 Change Photo' : '📸 Take or Upload Photo'}</span>
-          </button>
-          <div class="sample-crops-pills">
-            <span class="pills-label">Samples:</span>
-            <button type="button" class="sample-pill ${state.scannerCrop === 'Tomatoes' ? 'active' : ''}" data-action="select-sample-crop" data-crop="Tomatoes">🍅 Tomatoes</button>
-            <button type="button" class="sample-pill ${state.scannerCrop === 'Cauliflower' ? 'active' : ''}" data-action="select-sample-crop" data-crop="Cauliflower">🥦 Cauliflower</button>
-            <button type="button" class="sample-pill ${state.scannerCrop === 'Okra' ? 'active' : ''}" data-action="select-sample-crop" data-crop="Okra">🥬 Okra</button>
-            <button type="button" class="sample-pill ${state.scannerCrop === 'Potatoes' ? 'active' : ''}" data-action="select-sample-crop" data-crop="Potatoes">🥔 Potatoes</button>
+        ${state.liveCameraActive ? `
+          <!-- Live Camera Capture Action -->
+          <div class="live-camera-actions">
+            <div class="shutter-wrapper">
+              <button type="button" class="camera-shutter-btn" data-action="capture-live-photo" title="Snap Picture from Live Camera">
+                <span class="shutter-inner"></span>
+              </button>
+              <span class="shutter-label">Tap Shutter to Capture Picture</span>
+            </div>
+            <button type="button" class="outline-button small-btn cancel-camera-btn" data-action="stop-live-camera">
+              ✕ Close Camera
+            </button>
           </div>
-        </div>
+        ` : `
+          <!-- Photo Source Controls & Quick Sample Selector -->
+          <div class="photo-controls-row">
+            <div class="source-buttons-group">
+              <button type="button" class="live-cam-btn" data-action="start-live-camera" title="Open live camera to snap fresh produce">
+                📷 Live Camera
+              </button>
+              <button type="button" class="upload-pic-btn" data-action="choose-produce-photo">
+                📁 Upload Photo
+              </button>
+            </div>
+            <div class="sample-crops-pills">
+              <span class="pills-label">Samples:</span>
+              <button type="button" class="sample-pill ${state.scannerCrop === 'Tomatoes' ? 'active' : ''}" data-action="select-sample-crop" data-crop="Tomatoes">🍅 Tomatoes</button>
+              <button type="button" class="sample-pill ${state.scannerCrop === 'Cauliflower' ? 'active' : ''}" data-action="select-sample-crop" data-crop="Cauliflower">🥦 Cauliflower</button>
+              <button type="button" class="sample-pill ${state.scannerCrop === 'Okra' ? 'active' : ''}" data-action="select-sample-crop" data-crop="Okra">🥬 Okra</button>
+              <button type="button" class="sample-pill ${state.scannerCrop === 'Potatoes' ? 'active' : ''}" data-action="select-sample-crop" data-crop="Potatoes">🥔 Potatoes</button>
+            </div>
+          </div>
+        `}
 
         ${state.scannerRunning ? `
           <div class="scan-progress-bar">
@@ -1434,6 +1473,73 @@ function generateAiReply(query) {
   }
 }
 
+// Live Camera Stream Controller
+let currentCameraStream = null;
+
+function stopLiveCamera() {
+  if (currentCameraStream) {
+    try {
+      currentCameraStream.getTracks().forEach(track => track.stop());
+    } catch {}
+    currentCameraStream = null;
+  }
+  state.liveCameraActive = false;
+}
+
+async function startLiveCamera() {
+  stopLiveCamera();
+  state.liveCameraActive = true;
+  state.scannerDone = false;
+  state.scannerResult = null;
+  render();
+
+  try {
+    const constraints = {
+      video: {
+        facingMode: state.cameraFacingMode || 'environment',
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    };
+
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    currentCameraStream = stream;
+    const videoElem = document.getElementById('live-camera-video');
+    if (videoElem) {
+      videoElem.srcObject = stream;
+      videoElem.play().catch(e => console.warn('Video play error:', e));
+    }
+  } catch (err) {
+    console.error('Camera access error:', err);
+    stopLiveCamera();
+    render();
+    const errMsg = err.name === 'NotAllowedError' ? 'Camera permission denied. You can still upload produce photos!' : 'Camera not accessible on this device.';
+    toast(errMsg);
+  }
+}
+
+function captureLivePhoto() {
+  const videoElem = document.getElementById('live-camera-video');
+  if (!videoElem) return;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = videoElem.videoWidth || 640;
+  canvas.height = videoElem.videoHeight || 480;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(videoElem, 0, 0, canvas.width, canvas.height);
+
+  const capturedDataUrl = canvas.toDataURL('image/jpeg', 0.90);
+  stopLiveCamera();
+
+  state.scannerImage = capturedDataUrl;
+  state.scannerImageName = `Live Snap (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })})`;
+  state.scannerDone = false;
+  state.scannerResult = null;
+  render();
+  toast('Produce photo captured live! Click "Scan Picture with Gemini"');
+}
+
 document.addEventListener('click', (event) => {
   const target = event.target.closest('[data-screen], [data-action]');
   if (!target) return;
@@ -1448,6 +1554,7 @@ document.addEventListener('click', (event) => {
     state.modal = 'ai-chat';
     render();
   } else if (action === 'open-ai-scanner') {
+    stopLiveCamera();
     state.scannerRunning = false;
     state.scannerDone = false;
     state.scannerResult = null;
@@ -1458,10 +1565,22 @@ document.addEventListener('click', (event) => {
     }
     state.modal = 'ai-scanner';
     render();
+  } else if (action === 'start-live-camera') {
+    startLiveCamera();
+  } else if (action === 'stop-live-camera') {
+    stopLiveCamera();
+    render();
+  } else if (action === 'capture-live-photo') {
+    captureLivePhoto();
+  } else if (action === 'flip-camera') {
+    state.cameraFacingMode = state.cameraFacingMode === 'environment' ? 'user' : 'environment';
+    startLiveCamera();
   } else if (action === 'choose-produce-photo') {
+    stopLiveCamera();
     const fileInput = document.getElementById('scanner-file-input');
     if (fileInput) fileInput.click();
   } else if (action === 'select-sample-crop') {
+    stopLiveCamera();
     const selectedCrop = crop || 'Tomatoes';
     state.scannerCrop = selectedCrop;
     state.scannerImage = sampleProducePhotos[selectedCrop] || sampleProducePhotos.Tomatoes;
@@ -1664,6 +1783,7 @@ document.addEventListener('click', (event) => {
     render();
   } else if (action === 'close-modal' || action === 'backdrop') {
     if (action === 'backdrop' && event.target !== target) return;
+    stopLiveCamera();
     state.modal = null;
     render();
   } else if (action === 'add-cart') {
