@@ -8,6 +8,25 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const distPath = path.join(__dirname, '../dist');
 
+// Automatically load local .env if present
+const envPath = path.join(__dirname, '../.env');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf8');
+  envContent.split(/\r?\n/).forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx !== -1) {
+        const key = trimmed.slice(0, eqIdx).trim();
+        const val = trimmed.slice(eqIdx + 1).trim();
+        if (!process.env[key]) {
+          process.env[key] = val;
+        }
+      }
+    }
+  });
+}
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -346,7 +365,7 @@ async function callGeminiVision(base64Image, mimeType, cropHint) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
 
-  const model = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  const model = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
   const prompt = `You are Kisan Setu's AI Vision Agricultural Quality Inspector for Indian farming collectives and buyers.
 Inspect this harvest crop/produce image thoroughly.
 If a crop hint is given ("${cropHint || ''}"), consider it, or identify the crop from the image (e.g. Tomatoes, Cauliflower, Okra, Potatoes, Spinach, etc.).
@@ -362,7 +381,7 @@ Return ONLY a valid raw JSON object matching this exact schema:
   "shelfLife": "shelf life string (e.g. 4-5 Days)",
   "predictedGrade": "Grade A Certified",
   "suggestedPrice": 28.0,
-  "certifier": "Google Gemini Vision 1.5",
+  "certifier": "Google Gemini Vision (gemini-3.6-flash)",
   "notes": "1 concise sentence evaluating the produce quality, color uniformity, and market readiness."
 }`;
 
@@ -407,7 +426,7 @@ async function callGeminiChat(query) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
 
-  const model = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  const model = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
   const prompt = `You are "Kisan AI Copilot", an agricultural advisor on the Kisan Setu platform.
 You assist grower Varun Singh (Varun FPO in Sonipat, Haryana) and institutional buyers in Delhi NCR.
 Provide crisp, practical agricultural guidance on mandi rates, weather impact, harvesting timing, and fair pricing.
