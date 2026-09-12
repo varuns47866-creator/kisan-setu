@@ -3,9 +3,9 @@ import './style.css';
 const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) || '';
 
 async function syncWithBackend() {
-  if (!API_BASE) return;
   try {
-    const res = await fetch(`${API_BASE}/api/products`);
+    const url = API_BASE ? `${API_BASE}/api/products` : '/api/products';
+    const res = await fetch(url);
     if (res.ok) {
       const json = await res.json();
       if (json && json.data && Array.isArray(json.data) && json.data.length > 0) {

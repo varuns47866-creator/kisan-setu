@@ -1,5 +1,12 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const distPath = path.join(__dirname, '../dist');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -162,8 +169,8 @@ const aiCropInsights = {
   }
 };
 
-// Root endpoint
-app.get('/', (req, res) => {
+// API Root endpoint
+app.get('/api', (req, res) => {
   res.json({
     name: 'Kisan Setu Live API',
     version: '1.0.0',
@@ -384,6 +391,37 @@ app.get('/api/logistics', (req, res) => {
     ]
   });
 });
+
+// Serve frontend static assets if dist folder exists (Render unified full-stack deploy)
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.use((req, res, next) => {
+    if (req.method === 'GET' && !req.path.startsWith('/api')) {
+      return res.sendFile(path.join(distPath, 'index.html'));
+    }
+    next();
+  });
+} else {
+  // If dist does not exist, root returns API info
+  app.get('/', (req, res) => {
+    res.json({
+      name: 'Kisan Setu Live API',
+      version: '1.0.0',
+      grower: 'Varun Singh (Varun FPO)',
+      status: 'online',
+      endpoints: [
+        '/api/health',
+        '/api/products',
+        '/api/orders',
+        '/api/farmer/inventory',
+        '/api/ai/chat',
+        '/api/ai/scan',
+        '/api/ai/insights',
+        '/api/logistics'
+      ]
+    });
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`Kisan Setu Live Backend running on port ${PORT}`);

@@ -4,18 +4,21 @@ An interactive frontend prototype for a fair farm-to-market supply chain. It use
 
 ## Live Deployment
 
-### 1. Backend on Render (Live Server)
+### 1. Full-Stack on Render (One-Click / Web Service)
 1. Push this repository to **GitHub**.
-2. Log in to [Render](https://render.com/) and click **New + > Web Service**.
-3. Select your GitHub repository.
-4. Set the following settings (or let Render auto-detect from `render.yaml`):
-   - **Name:** `kisan-setu-backend`
+2. Log in to [Render](https://render.com/) and click **New + > Web Service** (or **New + > Blueprint** to auto-load `render.yaml`).
+3. Select your GitHub repository (`kisan-setu`).
+4. Set the following settings (Render auto-detects from `render.yaml`):
+   - **Name:** `kisan-setu`
    - **Runtime:** `Node`
-   - **Build Command:** `npm install`
-   - **Start Command:** `npm start` (or `node server/index.js`)
+   - **Build Command:** `npm install && npm run build`
+   - **Start Command:** `npm start`
    - **Health Check Path:** `/api/health`
-5. Click **Deploy Web Service**. Your live backend URL will be:
-   `https://kisan-setu-backend.onrender.com` (copy this URL).
+   - **Environment Variables:**
+     - `NODE_ENV`: `production`
+     - `PORT`: `10000`
+5. Click **Deploy Web Service**. Your live full-stack app will be live at:
+   `https://kisan-setu.onrender.com` (both frontend and backend live together!).
 
 ### 2. Frontend on Vercel
 1. Log in to [Vercel](https://vercel.com/) and click **Add New > Project**.

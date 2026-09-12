@@ -1,10 +1,10 @@
 services:
   - type: web
-    name: kisan-setu-backend
+    name: kisan-setu
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm install
+    buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
