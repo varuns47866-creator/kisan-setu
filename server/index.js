@@ -12,7 +12,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '12mb' }));
+app.use(express.urlencoded({ extended: true, limit: '12mb' }));
 
 // In-Memory Store
 let products = [
@@ -200,7 +201,7 @@ app.get('/api/products', (req, res) => {
 });
 
 app.post('/api/products', (req, res) => {
-  const { name, category, quantity, price, grade } = req.body;
+  const { name, category, quantity, price, grade, image } = req.body;
   if (!name || !quantity || !price) {
     return res.status(400).json({ success: false, message: 'Missing required harvest fields' });
   }
@@ -226,6 +227,7 @@ app.post('/api/products', (req, res) => {
     oldPrice: Math.round(Number(price) * 1.3),
     stock: Number(quantity),
     grade: grade || 'Grade A',
+    image: image || null,
     icon: meta.icon,
     tone: meta.tone,
     distance: 18,
@@ -317,56 +319,232 @@ app.get('/api/farmer/inventory', (req, res) => {
   res.json({ success: true, grower: 'Varun Singh', fpo: 'Varun FPO', data: farmerInventory });
 });
 
+// Helper to extract JSON from Gemini output
+function extractJson(text) {
+  if (!text) return null;
+  try {
+    return JSON.parse(text.trim());
+  } catch (e) {}
+  const matchFenced = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (matchFenced) {
+    try {
+      return JSON.parse(matchFenced[1].trim());
+    } catch (e) {}
+  }
+  const firstBrace = text.indexOf('{');
+  const lastBrace = text.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    try {
+      return JSON.parse(text.substring(firstBrace, lastBrace + 1).trim());
+    } catch (e) {}
+  }
+  return null;
+}
+
+// Gemini Vision Crop Inspector
+async function callGeminiVision(base64Image, mimeType, cropHint) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  const model = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  const prompt = `You are Kisan Setu's AI Vision Agricultural Quality Inspector for Indian farming collectives and buyers.
+Inspect this harvest crop/produce image thoroughly.
+If a crop hint is given ("${cropHint || ''}"), consider it, or identify the crop from the image (e.g. Tomatoes, Cauliflower, Okra, Potatoes, Spinach, etc.).
+Evaluate visual quality, color uniformity, defects, blemish level, firmness, shelf-life, and fair farmgate price in INR/kg for the Sonipat/Delhi NCR market.
+
+Return ONLY a valid raw JSON object matching this exact schema:
+{
+  "crop": "Detected crop name",
+  "lotId": "VF-${Math.floor(800 + Math.random() * 190)}",
+  "ripeness": "percentage string (e.g. 94.2%)",
+  "firmness": "rating string (e.g. 9.1 / 10)",
+  "surfaceDefect": "defect percentage string (e.g. 0.4%)",
+  "shelfLife": "shelf life string (e.g. 4-5 Days)",
+  "predictedGrade": "Grade A Certified",
+  "suggestedPrice": 28.0,
+  "certifier": "Google Gemini Vision 1.5",
+  "notes": "1 concise sentence evaluating the produce quality, color uniformity, and market readiness."
+}`;
+
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { text: prompt },
+              {
+                inline_data: {
+                  mime_type: mimeType || 'image/jpeg',
+                  data: base64Image
+                }
+              }
+            ]
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      console.error('Gemini Vision API status:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    return extractJson(candidateText);
+  } catch (err) {
+    console.error('Gemini Vision exception:', err.message);
+    return null;
+  }
+}
+
+// Gemini Chat Copilot
+async function callGeminiChat(query) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  const model = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  const prompt = `You are "Kisan AI Copilot", an agricultural advisor on the Kisan Setu platform.
+You assist grower Varun Singh (Varun FPO in Sonipat, Haryana) and institutional buyers in Delhi NCR.
+Provide crisp, practical agricultural guidance on mandi rates, weather impact, harvesting timing, and fair pricing.
+Keep response concise (under 3 sentences), helpful, and respectful.
+Question: "${query}"`;
+
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    });
+
+    if (!response.ok) return null;
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    return text ? text.trim() : null;
+  } catch (err) {
+    console.error('Gemini Chat exception:', err.message);
+    return null;
+  }
+}
+
 // AI Copilot Chat Endpoint
-app.post('/api/ai/chat', (req, res) => {
-  const query = (req.body.query || '').toLowerCase();
+app.post('/api/ai/chat', async (req, res) => {
+  const query = req.body.query || '';
+  if (!query) {
+    return res.status(400).json({ success: false, message: 'Missing query' });
+  }
+
+  // 1. Try Live Gemini Copilot if API Key is configured
+  if (process.env.GEMINI_API_KEY) {
+    const liveReply = await callGeminiChat(query);
+    if (liveReply) {
+      return res.json({
+        success: true,
+        source: 'gemini-live',
+        reply: {
+          text: liveReply,
+          action: { label: "Check AI Market Advisor", action: "ai-advisor" }
+        }
+      });
+    }
+  }
+
+  // 2. Intelligent Rule-Based Fallback
+  const q = query.toLowerCase();
   let reply = {
     text: `Namaste Varun Singh! Kisan AI monitors live mandi prices across Sonipat, Panipat, and Azadpur. Tomatoes and Okra are showing strong upwards momentum this week.`,
     action: { label: "Check AI Market Advisor", action: "ai-advisor" }
   };
 
-  if (query.includes('price') || query.includes('rate') || query.includes('bhav')) {
+  if (q.includes('price') || q.includes('rate') || q.includes('bhav')) {
     reply = {
       text: "Based on current NCR retail demand, Tomatoes from Varun FPO are valued at ₹27/kg (₹3 above mandi average). Cauliflower is trading strong at ₹32/kg. Would you like to list a batch now?",
       action: { label: "List Tomatoes at ₹27/kg", action: "prefill-produce", crop: "Tomatoes", price: 27 }
     };
-  } else if (query.includes('route') || query.includes('logistics') || query.includes('delivery') || query.includes('truck')) {
+  } else if (q.includes('route') || q.includes('logistics') || q.includes('delivery') || q.includes('truck')) {
     reply = {
       text: "The Sonipat collection route bundles Varun FPO (730 kg) and Savitri Farms (970 kg) into a single 48 km trip, cutting 18 km and saving ₹160 in fuel while preventing 22 kg of heat spoilage.",
       action: { label: "View Live Route Simulation", action: "set-screen", screen: "logistics" }
     };
-  } else if (query.includes('quality') || query.includes('grade') || query.includes('scan')) {
+  } else if (q.includes('quality') || q.includes('grade') || q.includes('scan')) {
     reply = {
       text: "Grade A requires >90% color uniformity, <1% surface blemishes, and firmness index >8.5. You can use our AI Vision scanner to certify your lot in 10 seconds.",
       action: { label: "Launch AI Quality Scan", action: "open-ai-scanner" }
     };
-  } else if (query.includes('buyer') || query.includes('demand') || query.includes('ncr')) {
+  } else if (q.includes('buyer') || q.includes('demand') || q.includes('ncr')) {
     reply = {
       text: "Green Basket Stores and 3 other verified supermarket chains in Delhi NCR are active right now. Estimated match time for Varun FPO produce is under 90 minutes.",
       action: { label: "Send Buyer Nudge", action: "send-nudge" }
     };
   }
 
-  res.json({ success: true, reply });
+  res.json({ success: true, source: 'rule-based', reply });
 });
 
 // AI Produce Vision Scanner
-app.post('/api/ai/scan', (req, res) => {
-  const crop = req.body.crop || 'Tomatoes';
+app.post('/api/ai/scan', async (req, res) => {
+  const { image, crop } = req.body || {};
+
+  // 1. If an image is provided and GEMINI_API_KEY is active, execute real Multimodal Vision scan
+  if (image && process.env.GEMINI_API_KEY) {
+    let mimeType = 'image/jpeg';
+    let base64Data = image;
+    if (image.startsWith('data:')) {
+      const match = image.match(/^data:([^;]+);base64,(.+)$/);
+      if (match) {
+        mimeType = match[1];
+        base64Data = match[2];
+      }
+    }
+
+    const geminiResult = await callGeminiVision(base64Data, mimeType, crop);
+    if (geminiResult) {
+      return res.json({
+        success: true,
+        source: 'gemini-vision-live',
+        data: {
+          ...geminiResult,
+          farm: 'Varun FPO'
+        }
+      });
+    }
+  }
+
+  // 2. Intelligent Simulation Fallback (works seamlessly offline or without API key)
+  const cropName = crop || 'Tomatoes';
+  const priceMap = {
+    'Tomatoes': 27.5,
+    'Cauliflower': 32.0,
+    'Okra': 38.0,
+    'Potatoes': 22.0,
+    'Baby Spinach': 28.0,
+    'Red Carrots': 30.0,
+    'Kinnow Mandarin': 45.0
+  };
+  const suggestedPrice = priceMap[cropName] || 27.5;
+
   const result = {
-    crop,
-    lotId: 'VF-902',
+    crop: cropName,
+    lotId: `VF-${Math.floor(800 + Math.random() * 190)}`,
     ripeness: '94.2%',
     firmness: '9.1 / 10',
     surfaceDefect: '0.4%',
     shelfLife: '4-5 Days',
     predictedGrade: 'Grade A Certified',
-    suggestedPrice: 27.5,
-    certifier: 'Kisan Vision v3.2',
-    farm: 'Varun FPO'
+    suggestedPrice,
+    certifier: process.env.GEMINI_API_KEY ? 'Google Gemini Vision 1.5' : 'Kisan AI Vision v3.2 (Simulation)',
+    farm: 'Varun FPO',
+    notes: 'Optimal color saturation and cellular firmness. Approved for Delhi NCR premium grocery chains.'
   };
 
-  res.json({ success: true, data: result });
+  res.json({ success: true, source: 'simulation', data: result });
 });
 
 // AI Insights

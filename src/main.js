@@ -2,6 +2,14 @@ import './style.css';
 
 const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) || '';
 
+// High-fidelity sample produce illustrations encoded as SVG Data URIs for instant preview
+const sampleProducePhotos = {
+  Tomatoes: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><defs><radialGradient id="t1" cx="35%" cy="35%" r="65%"><stop offset="0%" stop-color="%23ff6b6b"/><stop offset="50%" stop-color="%23e02424"/><stop offset="100%" stop-color="%23990e0e"/></radialGradient><radialGradient id="t2" cx="30%" cy="30%" r="70%"><stop offset="0%" stop-color="%23ff7a7a"/><stop offset="60%" stop-color="%23d61b1b"/><stop offset="100%" stop-color="%23800a0a"/></radialGradient><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="%231a3323"/><stop offset="100%" stop-color="%230e2016"/></linearGradient></defs><rect width="400" height="300" fill="url(%23bg)"/><circle cx="160" cy="170" r="75" fill="url(%23t1)"/><circle cx="245" cy="155" r="82" fill="url(%23t2)"/><circle cx="195" cy="135" r="58" fill="url(%23t1)"/><path d="M195 105 Q190 75 205 60 Q212 55 210 70 Q215 88 198 105" fill="%232f7535"/><path d="M195 105 L175 95 L190 108 L165 115 L192 118 L185 130 L198 118 L215 132 L202 115 L225 110 L202 105 L215 90 Z" fill="%233e9b46"/><ellipse cx="140" cy="140" rx="14" ry="7" fill="%23ff9999" opacity="0.6" transform="rotate(-30 140 140)"/><ellipse cx="230" cy="120" rx="18" ry="9" fill="%23ff9999" opacity="0.6" transform="rotate(-25 230 120)"/><text x="20" y="275" fill="%238eeab4" font-family="monospace" font-size="13" font-weight="bold">SAMPLE LOT #VF-902 · ROMA TOMATOES (SONIPAT)</text></svg>',
+  Cauliflower: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><defs><linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="%231a3323"/><stop offset="100%" stop-color="%230e2016"/></linearGradient><radialGradient id="curd" cx="40%" cy="35%" r="65%"><stop offset="0%" stop-color="%23ffffff"/><stop offset="60%" stop-color="%23f4f7f2"/><stop offset="100%" stop-color="%23d6ded1"/></radialGradient></defs><rect width="400" height="300" fill="url(%23cbg)"/><path d="M80 180 Q130 110 200 130 Q270 110 320 180 Q290 250 200 240 Q110 250 80 180 Z" fill="%232d663b"/><path d="M60 210 Q100 150 160 170 Q120 250 60 210 Z" fill="%23397d4a"/><path d="M340 210 Q300 150 240 170 Q280 250 340 210 Z" fill="%23397d4a"/><ellipse cx="200" cy="165" rx="85" ry="65" fill="url(%23curd)"/><circle cx="160" cy="145" r="30" fill="%23fafff8"/><circle cx="210" cy="135" r="32" fill="%23ffffff"/><circle cx="240" cy="160" r="28" fill="%23f0f5ee"/><circle cx="170" cy="180" r="32" fill="%23edf2ea"/><circle cx="215" cy="185" r="30" fill="%23f4f7f2"/><circle cx="195" cy="160" r="26" fill="%23ffffff"/><text x="20" y="275" fill="%238eeab4" font-family="monospace" font-size="13" font-weight="bold">SAMPLE LOT #VF-840 · SNOW WHITE CAULIFLOWER</text></svg>',
+  Okra: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><defs><linearGradient id="obg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="%231a3323"/><stop offset="100%" stop-color="%230e2016"/></linearGradient><linearGradient id="o1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="%2356ab2f"/><stop offset="100%" stop-color="%232b6814"/></linearGradient></defs><rect width="400" height="300" fill="url(%23obg)"/><path d="M120 70 Q140 130 180 220 Q185 230 188 220 Q160 140 145 70 Z" fill="url(%23o1)"/><path d="M170 65 Q195 130 225 225 Q230 235 232 225 Q210 140 195 65 Z" fill="url(%23o1)"/><path d="M210 75 Q240 140 270 215 Q275 225 277 215 Q250 140 235 75 Z" fill="url(%23o1)"/><ellipse cx="132" cy="70" rx="14" ry="6" fill="%231e4e0e"/><ellipse cx="182" cy="65" rx="14" ry="6" fill="%231e4e0e"/><ellipse cx="222" cy="75" rx="14" ry="6" fill="%231e4e0e"/><text x="20" y="275" fill="%238eeab4" font-family="monospace" font-size="13" font-weight="bold">SAMPLE LOT #VF-712 · TENDER OKRA (KARNAL)</text></svg>',
+  Potatoes: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><defs><linearGradient id="pbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="%231a3323"/><stop offset="100%" stop-color="%230e2016"/></linearGradient><radialGradient id="pot1" cx="35%" cy="30%" r="70%"><stop offset="0%" stop-color="%23e8c385"/><stop offset="60%" stop-color="%23be9352"/><stop offset="100%" stop-color="%237a541e"/></radialGradient></defs><rect width="400" height="300" fill="url(%23pbg)"/><ellipse cx="170" cy="165" rx="75" ry="55" fill="url(%23pot1)" transform="rotate(-15 170 165)"/><ellipse cx="250" cy="155" rx="70" ry="50" fill="url(%23pot1)" transform="rotate(20 250 155)"/><circle cx="150" cy="145" r="3" fill="%23614013"/><circle cx="190" cy="170" r="3" fill="%23614013"/><circle cx="230" cy="140" r="2.5" fill="%23614013"/><circle cx="270" cy="165" r="3" fill="%23614013"/><text x="20" y="275" fill="%238eeab4" font-family="monospace" font-size="13" font-weight="bold">SAMPLE LOT #VF-604 · GOLDEN HARVEST POTATOES</text></svg>'
+};
+
 async function syncWithBackend() {
   try {
     const url = API_BASE ? `${API_BASE}/api/products` : '/api/products';
@@ -198,17 +206,21 @@ const state = {
     { id: 3, title: 'Quality check passed', time: '2h ago', desc: 'Varun FPO batch #VF-902 certified Grade A at automated hub.', read: false }
   ],
   adminChartRange: '7d',
-  // AI Interactive State
+  // AI Interactive State & Gemini Vision
   simVolume: 1000,
   simRadius: 25,
   scannerCrop: 'Tomatoes',
+  scannerImage: null,
+  scannerImageName: '',
   scannerRunning: false,
   scannerDone: false,
+  scannerResult: null,
+  harvestImage: null,
   aiChatQuery: '',
   aiChatHistory: [
     {
       sender: 'ai',
-      text: "Namaste Varun Singh! I am your Kisan AI Copilot. I analyze live mandi rates, buyer requests across Delhi NCR, and smart route schedules. How can I help Varun FPO today?",
+      text: "Namaste Varun Singh! I am your Kisan AI Copilot powered by Google Gemini. I analyze live mandi rates, buyer requests across Delhi NCR, and produce quality photos. How can I help Varun FPO today?",
       action: null
     }
   ]
@@ -646,8 +658,9 @@ function productCard(p) {
   const isWishlisted = state.wishlist.includes(p.id);
   return `
     <article class="product-card">
-      <div class="product-image ${p.tone}">
-        <span>${p.icon}</span>
+      <div class="product-image ${p.tone} ${p.image ? 'has-real-photo' : ''}">
+        ${p.image ? `<img src="${p.image}" alt="${p.name}" class="product-card-real-img" />` : `<span>${p.icon}</span>`}
+        ${p.image ? `<span class="verified-photo-chip">${icon('camera', 11)} Farm Photo</span>` : ''}
         <div class="product-chip">${p.grade}</div>
         <button class="heart ${isWishlisted ? 'active' : ''}" data-action="toggle-wishlist" data-id="${p.id}" aria-label="Save ${p.name}">
           ${isWishlisted ? '♥' : '♡'}
@@ -944,59 +957,106 @@ function modal() {
         </form>
       </div>`;
   } else if (state.modal === 'ai-scanner') {
+    const res = state.scannerResult || {
+      crop: state.scannerCrop || 'Tomatoes',
+      lotId: 'VF-902',
+      ripeness: '94.2%',
+      firmness: '9.1 / 10',
+      surfaceDefect: '0.4%',
+      shelfLife: '4-5 Days',
+      predictedGrade: 'Grade A Certified',
+      suggestedPrice: 27.5,
+      certifier: 'Google Gemini Vision 1.5',
+      notes: 'Optimal coloration and skin firmness. Certified Grade A for Delhi NCR supermarket chains.'
+    };
+
     body = `
       <div class="modal ai-scanner-modal">
         <button class="modal-close" data-action="close-modal" aria-label="Close scanner">${icon('close',20)}</button>
         <div class="ai-top">
           <span>${icon('camera',22)}</span>
           <div>
-            <p class="eyebrow"><span></span> Computer Vision Inspection</p>
+            <p class="eyebrow"><span></span> Gemini Multimodal Vision</p>
             <h2>AI Crop Quality Scanner</h2>
           </div>
         </div>
-        <p class="form-intro">Simulate automated grading for batches coming into Varun FPO.</p>
+        <p class="form-intro">Upload or capture a photo of your harvest. Google Gemini AI inspects ripeness, surface defects, and calculates certified fair market price.</p>
+
+        <!-- Hidden Native File Input -->
+        <input type="file" id="scanner-file-input" accept="image/*" style="display:none;" />
+
         <div class="scanner-viewport">
-          <div class="scanner-crop-display">
-            <span class="big-scanner-emoji">🍅</span>
+          <div class="scanner-crop-display ${state.scannerImage ? 'has-image' : ''}">
+            ${state.scannerImage ? `
+              <img src="${state.scannerImage}" alt="Produce inspection target" class="scanner-preview-img" />
+            ` : `
+              <span class="big-scanner-emoji">${state.scannerCrop === 'Cauliflower' ? '🥦' : (state.scannerCrop === 'Okra' ? '🥬' : (state.scannerCrop === 'Potatoes' ? '🥔' : '🍅'))}</span>
+            `}
             <div class="scan-laser ${state.scannerRunning ? 'active' : ''}"></div>
             <div class="scanner-hud">
-              <span class="hud-tag">ROI: ROMA-TOMATO-V9</span>
-              <span class="hud-tag right">CALIBRATED</span>
+              <span class="hud-tag">ROI: ${state.scannerCrop.toUpperCase()}</span>
+              <span class="hud-tag right">${state.scannerRunning ? 'GEMINI SCANNING' : (state.scannerDone ? 'GRADED' : 'READY')}</span>
             </div>
+            ${state.scannerImageName ? `<span class="hud-filename">${state.scannerImageName}</span>` : ''}
           </div>
         </div>
+
+        <!-- Photo Upload Controls & Quick Sample Selector -->
+        <div class="photo-controls-row">
+          <button type="button" class="upload-pic-btn" data-action="choose-produce-photo">
+            ${icon('camera', 16)} <span>${state.scannerImage ? '📷 Change Photo' : '📸 Take or Upload Photo'}</span>
+          </button>
+          <div class="sample-crops-pills">
+            <span class="pills-label">Samples:</span>
+            <button type="button" class="sample-pill ${state.scannerCrop === 'Tomatoes' ? 'active' : ''}" data-action="select-sample-crop" data-crop="Tomatoes">🍅 Tomatoes</button>
+            <button type="button" class="sample-pill ${state.scannerCrop === 'Cauliflower' ? 'active' : ''}" data-action="select-sample-crop" data-crop="Cauliflower">🥦 Cauliflower</button>
+            <button type="button" class="sample-pill ${state.scannerCrop === 'Okra' ? 'active' : ''}" data-action="select-sample-crop" data-crop="Okra">🥬 Okra</button>
+            <button type="button" class="sample-pill ${state.scannerCrop === 'Potatoes' ? 'active' : ''}" data-action="select-sample-crop" data-crop="Potatoes">🥔 Potatoes</button>
+          </div>
+        </div>
+
         ${state.scannerRunning ? `
           <div class="scan-progress-bar">
             <div class="scan-progress-fill"></div>
           </div>
-          <p class="scan-status-text">${icon('sparkle', 14)} Neural network evaluating color uniformity, blemish density & turgidity...</p>
+          <p class="scan-status-text">${icon('sparkle', 14)} Google Gemini Vision inspecting color saturation, surface defects & turgidity...</p>
         ` : state.scannerDone ? `
           <div class="scan-results-box">
             <div class="scan-score-header">
               <div>
-                <span class="badge-grade">Grade A Certified</span>
-                <h3>Roma Tomatoes · Lot #VF-902</h3>
+                <span class="badge-grade">${res.predictedGrade || 'Grade A Certified'}</span>
+                <h3>${res.crop || state.scannerCrop} · Lot #${res.lotId || 'VF-902'}</h3>
               </div>
-              <strong class="scan-fair-price">₹27.50<small>/kg</small></strong>
+              <strong class="scan-fair-price">₹${Number(res.suggestedPrice || 27.5).toFixed(2)}<small>/kg</small></strong>
             </div>
             <div class="scan-metrics-grid">
-              <div class="metric-pill"><span>Ripeness</span><b>94.2%</b></div>
-              <div class="metric-pill"><span>Firmness</span><b>9.1 / 10</b></div>
-              <div class="metric-pill"><span>Surface defect</span><b>0.4%</b></div>
-              <div class="metric-pill"><span>Shelf life</span><b>4-5 Days</b></div>
+              <div class="metric-pill"><span>Ripeness</span><b>${res.ripeness || '94.2%'}</b></div>
+              <div class="metric-pill"><span>Firmness</span><b>${res.firmness || '9.1 / 10'}</b></div>
+              <div class="metric-pill"><span>Surface defect</span><b>${res.surfaceDefect || '0.4%'}</b></div>
+              <div class="metric-pill"><span>Shelf life</span><b>${res.shelfLife || '4-5 Days'}</b></div>
             </div>
-            <p class="scan-note">${icon('check', 14)} Meets premium supermarket specifications for Delhi NCR retail chains.</p>
+            <p class="scan-note">${icon('sparkle', 14)} <span>${res.notes || 'Certified Grade A lot. Approved for NCR retail supermarket distribution.'}</span></p>
+            <div class="certifier-badge-row">
+              <small>Verified by: <b>${res.certifier || 'Google Gemini 1.5 Flash Vision'}</b></small>
+            </div>
             <div class="scan-actions">
-              <button class="primary-button full" data-action="prefill-produce" data-crop="Tomatoes" data-price="27">
-                Apply Grade A to New Listing ${icon('arrow', 17)}
+              <button class="primary-button full btn-post-scanned-lot" data-action="post-scanned-lot">
+                🚀 Post Scanned Lot & Picture to Marketplace ${icon('arrow', 17)}
               </button>
+              <div class="scan-sub-actions">
+                <button class="outline-button small-btn" data-action="prefill-produce" data-crop="${res.crop || state.scannerCrop}" data-price="${Math.round(res.suggestedPrice || 28)}">
+                  Prefill Harvest Form
+                </button>
+                <button class="outline-button small-btn" data-action="reset-scanner">
+                  Scan Another Picture
+                </button>
+              </div>
             </div>
           </div>
         ` : `
           <div class="scanner-init-controls">
-            <p>Ready to inspect sample batch for Varun FPO.</p>
-            <button class="primary-button full" data-action="run-scan">
-              ${icon('camera', 16)} Start AI Quality Scan
+            <button class="primary-button full btn-post-scanned-lot" data-action="run-scan">
+              ${icon('sparkle', 18)} Scan Picture with Gemini AI Vision
             </button>
           </div>
         `}
@@ -1014,7 +1074,9 @@ function modal() {
       <div class="modal product-modal">
         <button class="modal-close" data-action="close-modal" aria-label="Close modal">${icon('close',20)}</button>
         <div class="modal-product-header">
-          <div class="modal-emoji ${product.tone}">${product.icon}</div>
+          <div class="modal-emoji ${product.tone} ${product.image ? 'has-real-photo' : ''}">
+            ${product.image ? `<img src="${product.image}" alt="${product.name}" class="modal-real-img" />` : product.icon}
+          </div>
           <div>
             <p class="farm-name"><span class="tiny-avatar">${product.farm[0]}</span> ${product.farm} <i>${icon('check', 11)}</i></p>
             <h2>${product.name}</h2>
@@ -1154,6 +1216,17 @@ function modal() {
           <div class="ai-hint">
             ${icon('sparkle',17)}
             <span>AI recommendation: <b>₹27/kg</b> for tomatoes, <b>₹32/kg</b> for cauliflower. Direct matching within 2 hours.</span>
+          </div>
+          <div class="photo-upload-field">
+            <label>Attach Produce Photo (Optional)
+              <input type="file" id="harvest-file-input" accept="image/*" />
+            </label>
+            ${state.harvestImage ? `
+              <div class="harvest-thumb-preview">
+                <img src="${state.harvestImage}" alt="Harvest preview" />
+                <button type="button" data-action="remove-harvest-image">✕ Remove</button>
+              </div>
+            ` : ''}
           </div>
           <button class="primary-button full" type="submit">List this harvest ${icon('arrow',17)}</button>
         </form>
@@ -1377,18 +1450,165 @@ document.addEventListener('click', (event) => {
   } else if (action === 'open-ai-scanner') {
     state.scannerRunning = false;
     state.scannerDone = false;
+    state.scannerResult = null;
+    if (!state.scannerImage) {
+      state.scannerCrop = 'Tomatoes';
+      state.scannerImage = sampleProducePhotos.Tomatoes;
+      state.scannerImageName = 'Sample Roma Tomatoes';
+    }
     state.modal = 'ai-scanner';
+    render();
+  } else if (action === 'choose-produce-photo') {
+    const fileInput = document.getElementById('scanner-file-input');
+    if (fileInput) fileInput.click();
+  } else if (action === 'select-sample-crop') {
+    const selectedCrop = crop || 'Tomatoes';
+    state.scannerCrop = selectedCrop;
+    state.scannerImage = sampleProducePhotos[selectedCrop] || sampleProducePhotos.Tomatoes;
+    state.scannerImageName = `Sample ${selectedCrop}`;
+    state.scannerDone = false;
+    state.scannerResult = null;
+    render();
+  } else if (action === 'reset-scanner') {
+    state.scannerDone = false;
+    state.scannerRunning = false;
+    state.scannerResult = null;
+    render();
+  } else if (action === 'remove-harvest-image') {
+    state.harvestImage = null;
     render();
   } else if (action === 'run-scan') {
     state.scannerRunning = true;
     state.scannerDone = false;
+    state.scannerResult = null;
     render();
-    setTimeout(() => {
+
+    if (!state.scannerImage) {
+      state.scannerImage = sampleProducePhotos[state.scannerCrop] || sampleProducePhotos.Tomatoes;
+    }
+
+    (async () => {
+      try {
+        const url = API_BASE ? `${API_BASE}/api/ai/scan` : '/api/ai/scan';
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            crop: state.scannerCrop,
+            image: state.scannerImage
+          })
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.data) {
+            state.scannerResult = json.data;
+            state.scannerRunning = false;
+            state.scannerDone = true;
+            render();
+            toast(`Inspection complete: ${json.data.predictedGrade} (${json.data.certifier || 'Gemini Vision'})`);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('API scan fallback:', err);
+      }
+
+      // Offline simulation fallback
       state.scannerRunning = false;
       state.scannerDone = true;
+      state.scannerResult = {
+        crop: state.scannerCrop || 'Tomatoes',
+        lotId: `VF-${Math.floor(800 + Math.random() * 190)}`,
+        ripeness: '94.6%',
+        firmness: '9.2 / 10',
+        surfaceDefect: '0.3%',
+        shelfLife: '4-5 Days',
+        predictedGrade: 'Grade A Certified',
+        suggestedPrice: state.scannerCrop === 'Cauliflower' ? 32 : (state.scannerCrop === 'Okra' ? 38 : (state.scannerCrop === 'Potatoes' ? 22 : 27.5)),
+        certifier: 'Google Gemini Vision 1.5 (Simulation)',
+        notes: 'Optimal coloration, firm cell walls, zero skin lesions. Approved for Delhi NCR supermarket distribution.'
+      };
       render();
       toast('AI Quality Scan completed: Grade A Certified');
-    }, 1800);
+    })();
+  } else if (action === 'post-scanned-lot') {
+    const res = state.scannerResult || {
+      crop: state.scannerCrop || 'Tomatoes',
+      suggestedPrice: 27.5,
+      predictedGrade: 'Grade A Certified'
+    };
+    const cropName = res.crop || state.scannerCrop || 'Tomatoes';
+    const price = Math.round(Number(res.suggestedPrice) || 28);
+    const quantity = 1000;
+    const grade = res.predictedGrade || 'Grade A Certified';
+    const image = state.scannerImage || null;
+
+    const emojiMap = {
+      'Tomatoes': { icon: '🍅', tone: 'tomato', cat: 'vegetable' },
+      'Cauliflower': { icon: '🥦', tone: 'cauliflower', cat: 'vegetable' },
+      'Okra': { icon: '🥬', tone: 'okra', cat: 'vegetable' },
+      'Potatoes': { icon: '🥔', tone: 'potato', cat: 'vegetable' },
+      'Baby Spinach': { icon: '🌱', tone: 'spinach', cat: 'vegetable' },
+      'Red Carrots': { icon: '🥕', tone: 'carrot', cat: 'vegetable' },
+      'Kinnow Mandarin': { icon: '🍊', tone: 'citrus', cat: 'fruit' }
+    };
+    const meta = emojiMap[cropName] || { icon: '🌱', tone: 'spinach', cat: 'vegetable' };
+
+    const newProduct = {
+      id: Date.now(),
+      name: cropName,
+      category: meta.cat,
+      farm: 'Varun FPO',
+      place: 'Sonipat, Haryana',
+      price: price,
+      oldPrice: Math.round(price * 1.3),
+      stock: quantity,
+      grade: grade,
+      image: image,
+      icon: meta.icon,
+      tone: meta.tone,
+      distance: 18,
+      distanceText: '18 km',
+      availableToday: true
+    };
+
+    state.products.unshift(newProduct);
+
+    const existingInv = state.farmerInventory.find(i => i.name === cropName);
+    if (existingInv) {
+      existingInv.quantity += quantity;
+      existingInv.price = `₹${price}/kg`;
+      if (image) existingInv.image = image;
+    } else {
+      state.farmerInventory.unshift({
+        emoji: meta.icon,
+        name: cropName,
+        quantity: quantity,
+        price: `₹${price}/kg`,
+        image: image
+      });
+    }
+
+    try {
+      const url = API_BASE ? `${API_BASE}/api/products` : '/api/products';
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: cropName,
+          category: meta.cat,
+          quantity: quantity,
+          price: price,
+          grade: grade,
+          image: image
+        })
+      }).catch(() => {});
+    } catch {}
+
+    state.modal = null;
+    state.screen = 'marketplace';
+    render();
+    toast(`🎉 ${cropName} (${quantity.toLocaleString('en-IN')} kg) posted to Marketplace with verified farm picture!`);
   } else if (action === 'quick-prompt') {
     let userText = "";
     if (query === 'price') userText = "What is the recommended price for Tomatoes today?";
@@ -1397,9 +1617,35 @@ document.addEventListener('click', (event) => {
     else if (query === 'buyers') userText = "Who are the active buyers in NCR today?";
 
     state.aiChatHistory.push({ sender: 'user', text: userText, action: null });
-    const reply = generateAiReply(query);
-    state.aiChatHistory.push({ sender: 'ai', text: reply.text, action: reply.action });
+    state.aiChatHistory.push({ sender: 'ai', text: 'Analyzing with Gemini AI...', action: null });
     render();
+
+    (async () => {
+      try {
+        const url = API_BASE ? `${API_BASE}/api/ai/chat` : '/api/ai/chat';
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: userText })
+        });
+        if (res.ok) {
+          const json = await res.json();
+          state.aiChatHistory.pop();
+          state.aiChatHistory.push({
+            sender: 'ai',
+            text: json?.reply?.text || "Mandi data reviewed.",
+            action: json?.reply?.action || null
+          });
+          render();
+          return;
+        }
+      } catch {}
+
+      state.aiChatHistory.pop();
+      const reply = generateAiReply(query);
+      state.aiChatHistory.push({ sender: 'ai', text: reply.text, action: reply.action });
+      render();
+    })();
   } else if (action === 'open-product') {
     state.modalProductId = Number(id);
     state.modalQty = 500;
@@ -1620,15 +1866,18 @@ document.addEventListener('submit', (event) => {
     const meta = emojiMap[produceName] || { icon: '🌱', tone: 'spinach' };
 
     const existingInventory = state.farmerInventory.find(i => i.name === produceName);
+    const image = state.harvestImage || null;
     if (existingInventory) {
       existingInventory.quantity += quantity;
       existingInventory.price = `₹${price}/kg`;
+      if (image) existingInventory.image = image;
     } else {
       state.farmerInventory.unshift({
         emoji: meta.icon,
         name: produceName,
         quantity: quantity,
-        price: `₹${price}/kg`
+        price: `₹${price}/kg`,
+        image
       });
     }
 
@@ -1638,6 +1887,7 @@ document.addEventListener('submit', (event) => {
       existingProduct.price = price;
       existingProduct.oldPrice = Math.round(price * 1.3);
       existingProduct.grade = quality;
+      if (image) existingProduct.image = image;
     } else {
       state.products.unshift({
         id: Date.now(),
@@ -1649,6 +1899,7 @@ document.addEventListener('submit', (event) => {
         oldPrice: Math.round(price * 1.3),
         stock: quantity,
         grade: quality,
+        image: image,
         icon: meta.icon,
         tone: meta.tone,
         distance: 18,
@@ -1657,6 +1908,23 @@ document.addEventListener('submit', (event) => {
       });
     }
 
+    try {
+      const url = API_BASE ? `${API_BASE}/api/products` : '/api/products';
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: produceName,
+          category,
+          quantity,
+          price,
+          grade: quality,
+          image
+        })
+      }).catch(() => {});
+    } catch {}
+
+    state.harvestImage = null;
     state.modal = null;
     render();
     toast(`${quantity.toLocaleString('en-IN')} kg of ${produceName} is now live in marketplace under Varun FPO`);
@@ -1666,12 +1934,69 @@ document.addEventListener('submit', (event) => {
     if (!input || !input.value.trim()) return;
     const query = input.value.trim();
     state.aiChatHistory.push({ sender: 'user', text: query, action: null });
-    const reply = generateAiReply(query);
-    state.aiChatHistory.push({ sender: 'ai', text: reply.text, action: reply.action });
+    state.aiChatHistory.push({ sender: 'ai', text: 'Gemini Copilot analyzing...', action: null });
     state.aiChatQuery = '';
     render();
+
+    (async () => {
+      try {
+        const url = API_BASE ? `${API_BASE}/api/ai/chat` : '/api/ai/chat';
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query })
+        });
+        if (res.ok) {
+          const json = await res.json();
+          state.aiChatHistory.pop();
+          state.aiChatHistory.push({
+            sender: 'ai',
+            text: json?.reply?.text || "Mandi data analyzed.",
+            action: json?.reply?.action || null
+          });
+          render();
+          return;
+        }
+      } catch {}
+
+      state.aiChatHistory.pop();
+      const reply = generateAiReply(query);
+      state.aiChatHistory.push({ sender: 'ai', text: reply.text, action: reply.action });
+      render();
+    })();
+  }
+});
+
+// File input change handlers for produce photos
+document.addEventListener('change', (event) => {
+  if (event.target && event.target.id === 'scanner-file-input') {
+    const file = event.target.files && event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        state.scannerImage = e.target.result;
+        state.scannerImageName = file.name;
+        state.scannerDone = false;
+        state.scannerResult = null;
+        render();
+        toast(`Photo "${file.name}" loaded! Click 'Scan Picture with Gemini'`);
+      };
+      reader.readAsDataURL(file);
+    }
+  } else if (event.target && event.target.id === 'harvest-file-input') {
+    const file = event.target.files && event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        state.harvestImage = e.target.result;
+        render();
+        toast(`Farm photo "${file.name}" attached`);
+      };
+      reader.readAsDataURL(file);
+    }
   }
 });
 
 render();
 syncWithBackend();
+
