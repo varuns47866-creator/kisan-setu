@@ -385,40 +385,54 @@ Return ONLY a valid raw JSON object matching this exact schema:
   "notes": "1 concise sentence evaluating the produce quality, color uniformity, and market readiness."
 }`;
 
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: prompt },
-              {
-                inline_data: {
-                  mime_type: mimeType || 'image/jpeg',
-                  data: base64Image
+  const modelsToTry = [
+    process.env.GEMINI_MODEL,
+    'gemini-3.5-flash',
+    'gemini-3.7-flash',
+    'gemini-3.8-flash',
+    'gemini-3.5-flash-lite'
+  ].filter(Boolean);
+
+  for (const model of modelsToTry) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: prompt },
+                {
+                  inline_data: {
+                    mime_type: mimeType || 'image/jpeg',
+                    data: base64Image
+                  }
                 }
-              }
-            ]
-          }
-        ]
-      })
-    });
+              ]
+            }
+          ]
+        })
+      });
 
-    if (!response.ok) {
-      console.error('Gemini Vision API status:', response.status);
-      return null;
+      if (!response.ok) {
+        console.warn(`Gemini Vision status ${response.status} with model ${model}, trying next...`);
+        continue;
+      }
+
+      const data = await response.json();
+      const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const parsed = extractJson(candidateText);
+      if (parsed) {
+        parsed.certifier = `Google Gemini Vision (${model})`;
+        return parsed;
+      }
+    } catch (err) {
+      console.warn(`Gemini Vision exception with ${model}:`, err.message);
     }
-
-    const data = await response.json();
-    const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    return extractJson(candidateText);
-  } catch (err) {
-    console.error('Gemini Vision exception:', err.message);
-    return null;
   }
+  return null;
 }
 
 // Gemini Chat Copilot
@@ -426,31 +440,44 @@ async function callGeminiChat(query) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
 
-  const model = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+  const modelsToTry = [
+    process.env.GEMINI_MODEL,
+    'gemini-3.5-flash',
+    'gemini-3.7-flash',
+    'gemini-3.8-flash',
+    'gemini-3.5-flash-lite'
+  ].filter(Boolean);
+
   const prompt = `You are "Kisan AI Copilot", an agricultural advisor on the Kisan Setu platform.
 You assist grower Varun Singh (Varun FPO in Sonipat, Haryana) and institutional buyers in Delhi NCR.
 Provide crisp, practical agricultural guidance on mandi rates, weather impact, harvesting timing, and fair pricing.
 Keep response concise (under 3 sentences), helpful, and respectful.
 Question: "${query}"`;
 
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      })
-    });
+  for (const model of modelsToTry) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      });
 
-    if (!response.ok) return null;
-    const data = await response.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    return text ? text.trim() : null;
-  } catch (err) {
-    console.error('Gemini Chat exception:', err.message);
-    return null;
+      if (!response.ok) {
+        console.warn(`Gemini Chat status ${response.status} with model ${model}, trying next...`);
+        continue;
+      }
+
+      const data = await response.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text && text.trim()) return text.trim();
+    } catch (err) {
+      console.warn(`Gemini Chat exception with ${model}:`, err.message);
+    }
   }
+  return null;
 }
 
 // AI Copilot Chat Endpoint
