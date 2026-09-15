@@ -571,7 +571,7 @@ app.get('/api/ai/insights', (req, res) => {
   res.json({ success: true, data: aiCropInsights });
 });
 
-// Logistics Route Data
+// Logistics Route & Live Map Data
 app.get('/api/logistics', (req, res) => {
   res.json({
     success: true,
@@ -580,12 +580,86 @@ app.get('/api/logistics', (req, res) => {
     estTime: '1h 42m',
     fuelEstimate: '₹350',
     currentLoad: '1,700 kg',
+    mapCenter: [29.08, 77.05],
+    zoom: 10,
+    vehicle: {
+      plate: 'HR-10-KS-2049',
+      driver: 'Rajesh Kumar (Kisan Logistics)',
+      speedKmh: 42,
+      coldTempCelsius: 3.8,
+      status: 'On Route',
+      heading: 165
+    },
     stops: [
-      { num: '01', name: 'Varun FPO', place: 'Sonipat', details: '730 kg pickup', time: '4:30 PM' },
-      { num: '02', name: 'Savitri Farms', place: 'Panipat', details: '970 kg pickup', time: '5:10 PM' },
-      { num: '03', name: 'North Hub', place: 'Karnal bypass', details: 'Consolidate & quality check', time: '5:45 PM' },
-      { num: '04', name: 'Green Basket Stores', place: 'Delhi NCR', details: '500 kg delivery', time: '6:42 PM' }
-    ]
+      {
+        num: '01',
+        name: 'Varun FPO',
+        place: 'Sonipat, Haryana',
+        details: '730 kg pickup · Tomatoes',
+        time: '4:30 PM',
+        lat: 28.9931,
+        lng: 77.0151,
+        type: 'farm',
+        produce: '🍅 Tomatoes (Grade A)',
+        contact: '+91 98765 43210'
+      },
+      {
+        num: '02',
+        name: 'Savitri Farms',
+        place: 'Panipat, Haryana',
+        details: '970 kg pickup · Cauliflower',
+        time: '5:10 PM',
+        lat: 29.3909,
+        lng: 76.9635,
+        type: 'farm',
+        produce: '🥦 Cauliflower (Premium)',
+        contact: '+91 98123 45678'
+      },
+      {
+        num: '03',
+        name: 'North Hub (Singhu)',
+        place: 'Singhu / Kundli Border',
+        details: 'Consolidate & quality check',
+        time: '5:45 PM',
+        lat: 28.8722,
+        lng: 77.1265,
+        type: 'hub',
+        produce: 'Cold Storage & Grading Hub',
+        contact: '+91 98990 11223'
+      },
+      {
+        num: '04',
+        name: 'Green Basket Stores',
+        place: 'Delhi NCR (Shalimar Bagh)',
+        details: '500 kg delivery',
+        time: '6:42 PM',
+        lat: 28.7166,
+        lng: 77.1568,
+        type: 'buyer',
+        produce: 'Direct Retail Fulfillment',
+        contact: '+91 99112 33445'
+      }
+    ],
+    // High-resolution GPS path along NH44 (Grand Trunk Road)
+    routeWaypoints: [
+      [28.9931, 77.0151], // Varun FPO (Sonipat)
+      [29.0800, 77.0300], // Murthal Bypass
+      [29.1800, 76.9900], // Ganaur
+      [29.2800, 76.9800], // Samalkha
+      [29.3909, 76.9635], // Savitri Farms (Panipat)
+      [29.2800, 76.9800], // Return leg via NH44
+      [29.0800, 77.0300], // Murthal
+      [28.9931, 77.0151], // Sonipat Bypass
+      [28.8722, 77.1265], // North Hub (Singhu / Kundli)
+      [28.7900, 77.1400], // Alipur / Mukarba Chowk
+      [28.7166, 77.1568]  // Green Basket Stores (Delhi NCR)
+    ],
+    savings: {
+      kmSaved: 18,
+      fuelSavedInr: 160,
+      spoilagePreventedKg: 22,
+      co2SavedKg: 14.5
+    }
   });
 });
 

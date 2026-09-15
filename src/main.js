@@ -1,4 +1,6 @@
 import './style.css';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) || '';
 
@@ -198,6 +200,9 @@ const state = {
   ],
   deliveryStarted: false,
   deliveryStep: 1,
+  mapLayer: 'street',
+  selectedStopKey: 1,
+  logisticsData: null,
   toast: '',
   unreadNotifications: 3,
   notifications: [
@@ -688,13 +693,279 @@ function productCard(p) {
     </article>`;
 }
 
+const routeStopsData = [
+  {
+    num: '01',
+    stopKey: 1,
+    name: 'Varun FPO',
+    place: 'Sonipat, Haryana',
+    details: '730 kg pickup · Tomatoes',
+    time: '4:30 PM',
+    lat: 28.9931,
+    lng: 77.0151,
+    icon: '🌾',
+    produce: '🍅 Tomatoes (Grade A certified)',
+    desc: 'Varun Singh FPO collection point'
+  },
+  {
+    num: '02',
+    stopKey: 2,
+    name: 'Savitri Farms',
+    place: 'Panipat, Haryana',
+    details: '970 kg pickup · Cauliflower',
+    time: '5:10 PM',
+    lat: 29.3909,
+    lng: 76.9635,
+    icon: '🥦',
+    produce: '🥦 Snow White Cauliflower',
+    desc: 'Consolidated milk-run pickup'
+  },
+  {
+    num: '03',
+    stopKey: 3,
+    name: 'North Hub (Singhu)',
+    place: 'Singhu / Kundli Border',
+    details: 'Consolidate & quality check',
+    time: '5:45 PM',
+    lat: 28.8722,
+    lng: 77.1265,
+    icon: '🏢',
+    produce: 'Cold Storage & Grading Facility',
+    desc: 'Automated QC scan & pre-cooling'
+  },
+  {
+    num: '04',
+    stopKey: 4,
+    name: 'Green Basket Stores',
+    place: 'Delhi NCR (Shalimar Bagh)',
+    details: '500 kg delivery',
+    time: '6:42 PM',
+    lat: 28.7166,
+    lng: 77.1568,
+    icon: '🛒',
+    produce: 'Direct Supermarket Delivery',
+    desc: 'Zero middleman farm-to-shelf drop'
+  }
+];
+
+const routePathWaypoints = [
+  [28.9931, 77.0151], // Varun FPO (Sonipat)
+  [29.0800, 77.0300], // Murthal
+  [29.1800, 76.9900], // Ganaur
+  [29.2800, 76.9800], // Samalkha
+  [29.3909, 76.9635], // Savitri Farms (Panipat)
+  [29.2800, 76.9800], // Return leg via NH44
+  [29.0800, 77.0300], // Murthal
+  [28.9931, 77.0151], // Sonipat
+  [28.8722, 77.1265], // North Hub (Singhu / Kundli)
+  [28.7900, 77.1400], // Alipur / Mukarba Chowk
+  [28.7166, 77.1568]  // Green Basket Stores (Delhi NCR)
+];
+
+let liveRouteMap = null;
+let liveTileLayer = null;
+let liveStopMarkers = [];
+let liveRoutePolyline = null;
+let liveTruckMarker = null;
+
+function destroyLiveMap() {
+  if (liveRouteMap) {
+    try {
+      liveRouteMap.remove();
+    } catch (e) {
+      console.warn('Map cleanup error:', e);
+    }
+    liveRouteMap = null;
+    liveTileLayer = null;
+    liveStopMarkers = [];
+    liveRoutePolyline = null;
+    liveTruckMarker = null;
+  }
+}
+
+function applyMapTileLayer() {
+  if (!liveRouteMap) return;
+  if (liveTileLayer) {
+    liveRouteMap.removeLayer(liveTileLayer);
+  }
+
+  if (state.mapLayer === 'satellite') {
+    liveTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 18,
+      attribution: 'Tiles &copy; Esri &mdash; Earthstar Geographics',
+      crossOrigin: true
+    });
+  } else {
+    // High-performance OpenStreetMap with subdomains and crossOrigin for Vercel/Production
+    liveTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      subdomains: ['a', 'b', 'c'],
+      crossOrigin: true,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
+    });
+  }
+
+  liveTileLayer.addTo(liveRouteMap);
+}
+
+function initOrUpdateLiveMap() {
+  const container = document.getElementById('live-route-leaflet-map');
+  if (!container) {
+    destroyLiveMap();
+    return;
+  }
+
+  // Prevent multiple map instances on same container
+  if (container._leaflet_id && liveRouteMap) {
+    try {
+      liveRouteMap.remove();
+    } catch {}
+    liveRouteMap = null;
+  }
+
+  try {
+    liveRouteMap = L.map('live-route-leaflet-map', {
+      zoomControl: true,
+      attributionControl: false
+    });
+
+    L.control.attribution({ position: 'bottomright', prefix: false })
+      .addAttribution('&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> | Kisan Setu')
+      .addTo(liveRouteMap);
+
+    applyMapTileLayer();
+
+    // Road aura line
+    L.polyline(routePathWaypoints, {
+      color: '#e6c574',
+      weight: 6,
+      opacity: 0.75,
+      lineJoin: 'round'
+    }).addTo(liveRouteMap);
+
+    // Primary route line
+    liveRoutePolyline = L.polyline(routePathWaypoints, {
+      color: '#1d6b46',
+      weight: 4,
+      opacity: 0.95,
+      dashArray: '8, 8',
+      lineJoin: 'round'
+    }).addTo(liveRouteMap);
+
+    // Stop markers
+    liveStopMarkers = [];
+    routeStopsData.forEach(stop => {
+      const isActive = state.deliveryStep === stop.stopKey;
+      const markerHtml = `
+        <div class="custom-stop-marker ${isActive ? 'active-marker' : ''}" style="width: 28px; height: 28px;">
+          ${stop.stopKey}
+        </div>
+      `;
+      const icon = L.divIcon({
+        className: 'leaflet-stop-div-icon',
+        html: markerHtml,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+        popupAnchor: [0, -16]
+      });
+
+      const popupContent = `
+        <div class="map-popup-card">
+          <h4>${stop.icon} Stop ${stop.num}: ${stop.name}</h4>
+          <p><strong>${stop.place}</strong><br/>${stop.details}</p>
+          <span class="popup-badge">${stop.produce}</span>
+          <div style="margin-top: 6px; font-size: 10px; color: #5a7062;">
+            Scheduled: <b>${stop.time}</b> · Status: ${state.deliveryStep >= stop.stopKey ? '✅ Reached' : '⏳ Scheduled'}
+          </div>
+        </div>
+      `;
+
+      const marker = L.marker([stop.lat, stop.lng], { icon })
+        .addTo(liveRouteMap)
+        .bindPopup(popupContent);
+
+      marker.on('click', () => {
+        state.selectedStopKey = stop.stopKey;
+      });
+
+      liveStopMarkers.push({ stopKey: stop.stopKey, marker, data: stop });
+    });
+
+    // Moving truck marker
+    const currentStop = routeStopsData.find(s => s.stopKey === state.deliveryStep) || routeStopsData[0];
+    const truckHtml = `
+      <div class="custom-truck-marker">
+        <div class="custom-truck-marker-inner">🚚</div>
+      </div>
+    `;
+    const truckIcon = L.divIcon({
+      className: 'leaflet-truck-div-icon',
+      html: truckHtml,
+      iconSize: [38, 38],
+      iconAnchor: [19, 19],
+      popupAnchor: [0, -20]
+    });
+
+    liveTruckMarker = L.marker([currentStop.lat, currentStop.lng], {
+      icon: truckIcon,
+      zIndexOffset: 1000
+    }).addTo(liveRouteMap);
+
+    const truckPopupContent = `
+      <div class="map-popup-card">
+        <h4>🚚 Kisan Reefer Vehicle · HR-10-KS-2049</h4>
+        <p><strong>Driver:</strong> Rajesh Kumar · Speed: <b>${state.deliveryStarted ? '44 km/h' : '0 km/h (At Stop)'}</b></p>
+        <span class="popup-badge" style="background: #143524; color: #8eeab4;">Cold Chain +3.8°C · Active</span>
+        <div style="margin-top: 6px; font-size: 10px; color: #435b4c;">
+          Current Target: <b>Stop ${currentStop.num} (${currentStop.name})</b>
+        </div>
+      </div>
+    `;
+    liveTruckMarker.bindPopup(truckPopupContent);
+
+    // Fit bounds to show whole 48 km route
+    liveRouteMap.fitBounds(liveRoutePolyline.getBounds(), {
+      padding: [40, 40],
+      maxZoom: 13
+    });
+
+    // Invalidate size to ensure Leaflet renders tiles properly
+    setTimeout(() => {
+      if (liveRouteMap) {
+        liveRouteMap.invalidateSize();
+      }
+    }, 150);
+
+    // If delivery is in progress, open the current stop popup
+    if (state.deliveryStarted) {
+      setTimeout(() => {
+        const activeObj = liveStopMarkers.find(m => m.stopKey === state.deliveryStep);
+        if (activeObj) {
+          activeObj.marker.openPopup();
+        }
+      }, 350);
+    }
+  } catch (err) {
+    console.error('Leaflet map error:', err);
+  }
+}
+
+async function syncLogisticsWithBackend() {
+  try {
+    const url = API_BASE ? `${API_BASE}/api/logistics` : '/api/logistics';
+    const res = await fetch(url);
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.stops) {
+        state.logisticsData = json;
+      }
+    }
+  } catch {}
+}
+
 function logistics() {
-  const stops = [
-    { num: '01', name: 'Varun FPO', place: 'Sonipat', details: '730 kg pickup', time: '4:30 PM', stopKey: 1 },
-    { num: '02', name: 'Savitri Farms', place: 'Panipat', details: '970 kg pickup', time: '5:10 PM', stopKey: 2 },
-    { num: '03', name: 'North Hub', place: 'Karnal bypass', details: 'Consolidate & quality check', time: '5:45 PM', stopKey: 3 },
-    { num: '04', name: 'Green Basket Stores', place: 'Delhi NCR', details: '500 kg delivery', time: '6:42 PM', stopKey: 4 }
-  ];
+  const stops = routeStopsData;
+  const curStop = stops[state.deliveryStep - 1] || stops[0];
 
   return `
     <main class="dashboard-page logistics-page">
@@ -704,7 +975,7 @@ function logistics() {
         <section class="dashboard-content">
           <div class="welcome-row">
             <div>
-              <p class="eyebrow"><span></span> Intelligent logistics</p>
+              <p class="eyebrow"><span></span> Intelligent logistics & live route</p>
               <h1>One route. More good food. <span>🚚</span></h1>
               <p>We group nearby farm orders from Varun FPO and partner growers to keep produce fresh and eliminate wasted miles.</p>
             </div>
@@ -723,7 +994,7 @@ function logistics() {
             <div class="route-label">
               <span class="route-icon">${icon('sparkle',18)}</span>
               <div>
-                <p>AI route optimizer</p>
+                <p>AI route optimizer · OpenStreetMap Live</p>
                 <h2>Sonipat collection route</h2>
               </div>
             </div>
@@ -737,33 +1008,40 @@ function logistics() {
           <div class="dashboard-grid route-grid">
             <article class="panel route-map">
               <div class="map-toolbar">
-                <span>${icon('route',16)} Live route preview</span>
-                <span class="map-live">
-                  <i></i>${state.deliveryStarted ? `Vehicle moving · Stop ${state.deliveryStep} of 4` : 'Ready at Varun FPO'}
-                </span>
+                <div class="map-toolbar-left">
+                  <span>${icon('route',16)} <b>Live GPS Route Tracker</b></span>
+                  <span class="map-chip-tag">${state.mapLayer === 'satellite' ? 'Satellite' : 'OpenStreetMap'}</span>
+                </div>
+                <div class="map-toolbar-actions">
+                  <button class="map-btn" data-action="map-toggle-layer" title="Toggle between Street and Satellite view">
+                    ${state.mapLayer === 'satellite' ? '🗺️ Street' : '🛰️ Satellite'}
+                  </button>
+                  <button class="map-btn" data-action="map-recenter" title="Fit all 4 stops on map">
+                    🎯 Recenter
+                  </button>
+                  <span class="map-live">
+                    <i></i>${state.deliveryStarted ? `Live GPS · Stop ${state.deliveryStep} of 4` : 'Ready at Varun FPO'}
+                  </span>
+                </div>
               </div>
-              <div class="map-canvas">
-                <div class="map-road road-one"></div>
-                <div class="map-road road-two"></div>
-                <div class="map-road road-three"></div>
-                <div class="route-line"><i></i><i></i><i></i><i></i></div>
-                <div class="map-stop farm-stop ${state.deliveryStep === 1 ? 'active' : ''}">
-                  <span>1</span>
-                  <p><b>Varun FPO</b><small>730 kg pickup</small></p>
+              <div id="live-route-leaflet-map" class="live-leaflet-container"></div>
+              <div class="map-telemetry-bar">
+                <div class="telemetry-item">
+                  <span>Current Waypoint</span>
+                  <b class="gold">${curStop.name}</b>
                 </div>
-                <div class="map-stop farm-stop two ${state.deliveryStep === 2 ? 'active' : ''}">
-                  <span>2</span>
-                  <p><b>Savitri Farms</b><small>970 kg pickup</small></p>
+                <div class="telemetry-item">
+                  <span>GPS Coordinates</span>
+                  <b>${curStop.lat.toFixed(4)}° N, ${curStop.lng.toFixed(4)}° E</b>
                 </div>
-                <div class="map-stop warehouse ${state.deliveryStep === 3 ? 'active' : ''}">
-                  <span>3</span>
-                  <p><b>North Hub</b><small>Consolidation</small></p>
+                <div class="telemetry-item">
+                  <span>Speed / Fleet</span>
+                  <b class="good">${state.deliveryStarted ? '44 km/h' : '0 km/h (At Stop)'} · HR-10-KS</b>
                 </div>
-                <div class="map-stop buyer-stop ${state.deliveryStep === 4 ? 'active' : ''}">
-                  <span>4</span>
-                  <p><b>Green Basket</b><small>500 kg delivery</small></p>
+                <div class="telemetry-item">
+                  <span>Cold Chain Reefer</span>
+                  <b class="good">+3.8°C (Optimal)</b>
                 </div>
-                <div class="truck ${state.deliveryStarted ? `moving stop-${state.deliveryStep}` : 'stop-1'}">🚚</div>
               </div>
             </article>
             <article class="panel route-stops">
@@ -771,7 +1049,7 @@ function logistics() {
               <h2>Built for freshness</h2>
               <ol>
                 ${stops.map((stop) => `
-                  <li class="${state.deliveryStep === stop.stopKey ? 'active-stop' : state.deliveryStep > stop.stopKey ? 'completed-stop' : ''}">
+                  <li class="${state.deliveryStep === stop.stopKey ? 'active-stop' : state.deliveryStep > stop.stopKey ? 'completed-stop' : ''}" data-action="focus-stop" data-stop="${stop.stopKey}">
                     <span>${state.deliveryStep > stop.stopKey ? icon('check', 11) : stop.num}</span>
                     <div>
                       <b>${stop.name}</b>
@@ -1148,6 +1426,11 @@ function modal() {
             Add to cart ${icon('cart',17)}
           </button>
         </div>
+        <div style="margin-top: 12px; border-top: 1px solid #edf0eb; padding-top: 10px;">
+          <button class="outline-button small-btn" data-action="view-farm-route" data-farm="${product.farm}" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            ${icon('route', 15)} 📍 View ${product.farm} on Live GPS Map
+          </button>
+        </div>
       </div>`;
   } else if (state.modal === 'cart') {
     const totalWeight = state.cart.reduce((sum, i) => sum + i.qty, 0);
@@ -1436,10 +1719,21 @@ function app() {
     ${state.toast ? `<div class="toast">${icon('check',17)} ${state.toast}</div>` : ''}`;
 }
 
+function onPostRender() {
+  if (state.screen === 'logistics') {
+    setTimeout(() => {
+      initOrUpdateLiveMap();
+    }, 25);
+  } else {
+    destroyLiveMap();
+  }
+}
+
 function render() {
   const appContainer = document.querySelector('#app');
   if (appContainer) {
     appContainer.innerHTML = app();
+    onPostRender();
   }
 }
 
@@ -1868,12 +2162,44 @@ document.addEventListener('click', (event) => {
     state.deliveryStarted = !state.deliveryStarted;
     if (state.deliveryStarted && state.deliveryStep === 0) state.deliveryStep = 1;
     render();
-    toast(state.deliveryStarted ? 'Collection route started - Vehicle moving from Varun FPO' : 'Delivery simulation paused');
+    toast(state.deliveryStarted ? 'Live collection route started - Vehicle moving from Varun FPO' : 'Delivery route paused');
   } else if (action === 'advance-delivery-step') {
     state.deliveryStep = (state.deliveryStep % 4) + 1;
     render();
     const stopNames = ['Varun FPO (Sonipat)', 'Savitri Farms (Panipat)', 'North Hub (Quality Check)', 'Green Basket Stores (Delhi NCR)'];
     toast(`Arrived at Stop ${state.deliveryStep}: ${stopNames[state.deliveryStep - 1]}`);
+  } else if (action === 'map-toggle-layer') {
+    state.mapLayer = state.mapLayer === 'satellite' ? 'street' : 'satellite';
+    applyMapTileLayer();
+    const btn = document.querySelector('[data-action="map-toggle-layer"]');
+    if (btn) btn.innerHTML = state.mapLayer === 'satellite' ? '🗺️ Street' : '🛰️ Satellite';
+    const tag = document.querySelector('.map-chip-tag');
+    if (tag) tag.textContent = state.mapLayer === 'satellite' ? 'Satellite' : 'OpenStreetMap';
+    toast(state.mapLayer === 'satellite' ? 'Switched to Satellite Imagery' : 'Switched to OpenStreetMap Roads');
+  } else if (action === 'map-recenter') {
+    if (liveRouteMap && liveRoutePolyline) {
+      liveRouteMap.fitBounds(liveRoutePolyline.getBounds(), { padding: [40, 40], maxZoom: 13 });
+      toast('Live map centered on all route waypoints');
+    }
+  } else if (action === 'focus-stop') {
+    const stopNum = Number(target.dataset.stop || (target.closest('[data-stop]') && target.closest('[data-stop]').dataset.stop));
+    if (stopNum) {
+      state.deliveryStep = stopNum;
+      render();
+      const stopObj = routeStopsData.find(s => s.stopKey === stopNum);
+      toast(`Focused Stop ${stopNum}: ${stopObj ? stopObj.name : ''}`);
+    }
+  } else if (action === 'view-farm-route') {
+    state.modal = null;
+    state.screen = 'logistics';
+    const farm = target.dataset.farm || '';
+    if (farm.toLowerCase().includes('savitri')) {
+      state.deliveryStep = 2;
+    } else {
+      state.deliveryStep = 1;
+    }
+    render();
+    toast(`Centered Live Map on ${farm}`);
   } else if (action === 'route-details') {
     state.modal = 'route-details';
     render();
@@ -2119,4 +2445,5 @@ document.addEventListener('change', (event) => {
 
 render();
 syncWithBackend();
+syncLogisticsWithBackend();
 
